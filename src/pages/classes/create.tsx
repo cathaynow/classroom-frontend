@@ -5,7 +5,7 @@ import {useBack} from "@refinedev/core";
 import {Separator} from "@/components/ui/separator.tsx";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card.tsx"
 import {zodResolver} from "@hookform/resolvers/zod"
-import {useForm} from "react-hook-form"
+import {useForm} from "@refinedev/react-hook-form"
 import {classSchema} from "@/lib/schema.ts";
 import * as z from "zod";
 
@@ -80,7 +80,7 @@ const Create = () => {
 
     const bannerPublicId = form.watch('bannerCldPubId')
 
-    const setBannerImage = (field, file) => {
+    const setBannerImage = (file: any, field: any) => {
         if (file) {
             field.onChange(file.url);
             form.setValue('bannerCldPubId', file.publicId, {
@@ -88,7 +88,7 @@ const Create = () => {
                 shouldDirty: true
             })
         } else {
-            filed.onChange('');
+            field.onChange('');
             form.setValue('bannerCldPubId', '', {
                 shouldValidate: true,
                 shouldDirty: true
@@ -131,7 +131,7 @@ const Create = () => {
                                                 url: field.value,
                                                 publicId: bannerPublicId ?? ''
                                             } : null}
-                                                          onChange={(file: any, field: any) => setBannerImage(file, field)}
+                                                          onChange={(file: any) => setBannerImage(file, field)}
                                             />
                                         </FormControl>
                                         <FormMessage/>

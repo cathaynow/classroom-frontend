@@ -9,8 +9,10 @@ function UploadWidget({
                           onChange,
                           disabled = false,
                       }: UploadWidgetProps) {
+
     const widgetRef = useRef<CloudinaryWidget | null>(null);
     const onChangeRef = useRef(onChange);
+    const lastUploadedPublicIdRef = useRef<string | null>(null);
 
     const [preview, setPreview] = useState<UploadWidgetValue | null>(value);
     const [deleteToken, setDeleteToken] = useState<string | null>(null);
@@ -24,7 +26,7 @@ function UploadWidget({
     // Sync external value → internal preview
     useEffect(() => {
         setPreview(value);
-        if (!value) {
+        if (!value || value.publicId !== lastUploadedPublicIdRef.current) {
             setDeleteToken(null);
         }
     }, [value]);
@@ -52,6 +54,7 @@ function UploadWidget({
                             publicId: result.info.public_id,
                         };
 
+                        lastUploadedPublicIdRef.current = payload.publicId;
                         setPreview(payload);
                         setDeleteToken(result.info.delete_token ?? null);
                         onChangeRef.current?.(payload);
@@ -64,12 +67,17 @@ function UploadWidget({
 
         if (initializeWidget()) return;
 
+        const MAX_INIT_ATTEMPTS = 20;
+        let attempts = 0;
         const intervalId = window.setInterval(() => {
-            if (initializeWidget()) {
+            attempts += 1;
+            if (initializeWidget() || attempts >= MAX_INIT_ATTEMPTS) {
                 window.clearInterval(intervalId);
+                if (attempts >= MAX_INIT_ATTEMPTS) {
+                    console.error("Cloudinary widget failed to load");
+                }
             }
         }, 500);
-
         return () => window.clearInterval(intervalId);
     }, []);
 
@@ -89,20 +97,25 @@ function UploadWidget({
                 const params = new URLSearchParams();
                 params.append("token", deleteToken);
 
-                await fetch(
+
+                const res = await fetch(
                     `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/delete_by_token`,
                     {
                         method: "POST",
                         body: params,
                     }
                 );
+                if (!res.ok) {
+                    throw new Error(`Cloudinary delete failed: ${res.status}`);
+                }
             }
-        } catch (error) {
-            console.error("Failed to remove image from Cloudinary", error);
-        } finally {
+
             setPreview(null);
             setDeleteToken(null);
             onChangeRef.current?.(null);
+        } catch (error) {
+            console.error("Failed to remove image from Cloudinary", error);
+        } finally {
             setIsRemoving(false);
         }
     };
@@ -127,9 +140,11 @@ function UploadWidget({
                 <div
                     className="upload-dropzone"
                     role="button"
-                    tabIndex={0}
+                    aria-disabled={disabled}
+                    tabIndex={disabled ? -1 : 0}
                     onClick={openWidget}
                     onKeyDown={(event) => {
+                        if (disabled) return;
                         if (event.key === "Enter" || event.key === " ") {
                             event.preventDefault();
                             openWidget();
