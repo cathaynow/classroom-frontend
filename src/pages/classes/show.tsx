@@ -84,6 +84,9 @@ const ClassesShow = () => {
         columns: studentColumns,
         refineCoreProps: {
             resource: `classes/${classId}/users`,
+            queryOptions: {
+                enabled: !!classId,
+            },
             pagination: {
                 pageSize: 3,
                 mode: "server",
@@ -171,7 +174,7 @@ const ClassesShow = () => {
                                 }
                                 data-status={classDetails.status}
                             >
-                                {classDetails.status.toUpperCase()}
+                                {classDetails.status?.toUpperCase() ?? "UNKNOWN"}
                             </Badge>
                         </div>
                     </div>
